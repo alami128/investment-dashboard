@@ -357,7 +357,20 @@ function Dashboard() {
             </div>
 
             {/* Loading Indicator */}
-            {loading && <p style={{ textAlign: 'center', color: '#378ADD', marginBottom: '1rem' }}>📡 Fetching live prices...</p>}
+            {loading && (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '1.5rem', 
+                background: 'rgba(55, 138, 221, 0.05)',
+                borderRadius: '12px',
+                marginBottom: '1.5rem',
+                border: '1px solid rgba(55, 138, 221, 0.1)'
+              }}>
+                <p style={{ color: '#378ADD', fontWeight: 600, fontSize: '15px' }}>
+                  📡 Fetching live prices...
+                </p>
+              </div>
+            )}
 
             {/* Form */}
             <div className="card">
@@ -407,7 +420,7 @@ function Dashboard() {
                 />
                 <div className="button-group">
                   <button type="submit" className="btn btn-primary">
-                    {editId ? 'Update' : 'Add'}
+                    {editId ? '✏️ Update' : '➕ Add Investment'}
                   </button>
                   {editId && (
                     <button
@@ -423,7 +436,7 @@ function Dashboard() {
                         });
                       }}
                     >
-                      Cancel
+                      ✕ Cancel
                     </button>
                   )}
                 </div>
@@ -486,7 +499,7 @@ function Dashboard() {
                   onChange={(e) => setFilter({ ...filter, dateTo: e.target.value })}
                 />
                 <button onClick={exportToCSV} className="btn btn-secondary">
-                  Export CSV
+                  📥 Export CSV
                 </button>
               </div>
             </div>
@@ -607,11 +620,11 @@ function Dashboard() {
                               </td>
                               <td>{asset?.market}</td>
                               <td className="actions">
-                                <button className="btn-small btn-edit" onClick={() => editInvestment(inv)}>
-                                  Edit
+                                <button className="btn-small btn-edit" onClick={() => editInvestment(inv)} title="Edit this investment">
+                                  ✏️ Edit
                                 </button>
-                                <button className="btn-small btn-delete" onClick={() => deleteInvestment(inv.id)}>
-                                  Delete
+                                <button className="btn-small btn-delete" onClick={() => deleteInvestment(inv.id)} title="Delete this investment">
+                                  🗑️ Delete
                                 </button>
                               </td>
                             </tr>
@@ -625,7 +638,7 @@ function Dashboard() {
 
             {investments.length === 0 && (
               <div className="empty-state">
-                <p>No investments yet. Add your first investment in the Overview tab!</p>
+                <p>📊 No investments yet. Add your first investment in the Overview tab!</p>
               </div>
             )}
           </>
@@ -633,7 +646,7 @@ function Dashboard() {
 
         {investments.length === 0 && view === 'overview' && (
           <div className="empty-state">
-            <p>Start building your global portfolio! Add your first investment above.</p>
+            <p>🎯 Start building your global portfolio! Add your first investment above.</p>
           </div>
         )}
       </div>
