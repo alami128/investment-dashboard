@@ -22,7 +22,9 @@ function Dashboard() {
     dateFrom: '',
     dateTo: '',
   });
-  const [view, setView] = useState('overview');
+  const [view, setView] = useState('investments');
+  const [timePeriod, setTimePeriod] = useState('ALL');
+  const [showAddForm, setShowAddForm] = useState(false);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const pieChartRef = useRef(null);
@@ -71,10 +73,29 @@ function Dashboard() {
     }
   }, [investments]);
 
-  // Portfolio value chart
+  // Portfolio value chart with time period filtering
   useEffect(() => {
     if (chartRef.current && investments.length > 0) {
-      const filteredData = applyFilters(investments);
+      let filteredData = applyFilters(investments);
+      
+      // Apply time period filter
+      const now = new Date();
+      let dateFrom = new Date();
+      
+      switch(timePeriod) {
+        case '1k': dateFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+        case '1m': dateFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+        case '3m': dateFrom = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); break;
+        case '6m': dateFrom = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000); break;
+        case 'YTD': dateFrom = new Date(now.getFullYear(), 0, 1); break;
+        case '1Y': dateFrom = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000); break;
+        case '5Y': dateFrom = new Date(now.getTime() - 5 * 365 * 24 * 60 * 60 * 1000); break;
+        case 'ALL': dateFrom = new Date(0); break;
+        default: dateFrom = new Date(0);
+      }
+      
+      filteredData = filteredData.filter(inv => new Date(inv.date) >= dateFrom);
+      
       const groupedByDate = {};
       
       filteredData.forEach((inv) => {
@@ -95,19 +116,24 @@ function Dashboard() {
         chartInstanceRef.current.destroy();
       }
 
+      const gradient = chartRef.current.getContext('2d').createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, 'rgba(55, 138, 221, 0.15)');
+      gradient.addColorStop(1, 'rgba(55, 138, 221, 0.01)');
+
       chartInstanceRef.current = new Chart(chartRef.current, {
         type: 'line',
         data: {
           labels: dates,
           datasets: [
             {
-              label: 'Cumulative Investment (€)',
+              label: 'Portfolio Value',
               data: cumulative,
               borderColor: '#378ADD',
-              backgroundColor: 'rgba(55, 138, 221, 0.1)',
+              backgroundColor: gradient,
               tension: 0.4,
               fill: true,
-              pointRadius: 4,
+              pointRadius: 0,
+              pointHoverRadius: 6,
               pointBackgroundColor: '#378ADD',
             },
           ],
@@ -117,15 +143,22 @@ function Dashboard() {
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              display: true,
-              position: 'top',
+              display: false,
             },
           },
           scales: {
             y: {
               beginAtZero: true,
               ticks: {
-                callback: (value) => '€' + value.toLocaleString(),
+                callback: (value) => '€' + (value / 1000).toFixed(0) + 'k',
+              },
+              grid: {
+                color: 'rgba(0,0,0,0.05)',
+              },
+            },
+            x: {
+              grid: {
+                display: false,
               },
             },
           },
@@ -138,7 +171,7 @@ function Dashboard() {
         chartInstanceRef.current.destroy();
       }
     };
-  }, [investments, filter]);
+  }, [investments, filter, timePeriod]);
 
   // Allocation pie chart
   useEffect(() => {
@@ -310,71 +343,116 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      <div className="container">
-        {/* Header */}
-        <div className="header">
-          <h1>💼 Global Investment Portfolio</h1>
-          <p>Track USA stocks, Casablanca Bourse, and ETFs with live prices</p>
+      {/* Sidebar Navigation */}
+      <div className="sidebar">
+        <div className="sidebar-logo" title="Dashboard">
+          💼
+        </div>
+        <div className="sidebar-nav">
+          <button 
+            className={`nav-icon ${view === 'investments' ? 'active' : ''}`}
+            onClick={() => setView('investments')}
+            title="Investments"
+          >
+            📈
+          </button>
+          <button 
+            className={`nav-icon ${view === 'analysis' ? 'active' : ''}`}
+            onClick={() => setView('analysis')}
+            title="Analysis"
+          >
+            📊
+          </button>
+          <button 
+            className={`nav-icon ${view === 'add' ? 'active' : ''}`}
+            onClick={() => setView('add')}
+            title="Add Investment"
+          >
+            ➕
+          </button>
+          <button 
+            className={`nav-icon ${view === 'transactions' ? 'active' : ''}`}
+            onClick={() => setView('transactions')}
+            title="Transactions"
+          >
+            📋
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="main-content">
+        {/* Top Header */}
+        <div className="header-top">
+          <h1>{view === 'investments' ? 'Investments' : view === 'analysis' ? 'Analysis' : view === 'add' ? 'Add Investment' : 'Transactions'}</h1>
+          <div className="header-buttons">
+            <button className="header-btn" title="Theme">🌙</button>
+            <button className="header-btn" title="Settings">⚙️</button>
+          </div>
         </div>
 
-        {/* View Tabs */}
-        <div className="tabs">
-          <button className={`tab ${view === 'overview' ? 'active' : ''}`} onClick={() => setView('overview')}>
-            Overview
-          </button>
-          <button className={`tab ${view === 'analysis' ? 'active' : ''}`} onClick={() => setView('analysis')}>
-            Analysis
-          </button>
-          <button className={`tab ${view === 'transactions' ? 'active' : ''}`} onClick={() => setView('transactions')}>
-            Transactions
-          </button>
-        </div>
+        {/* Content Area */}
+        <div className="container">
+          {view === 'investments' && (
+            <>
+              {/* Portfolio Header */}
+              <div className="portfolio-header">
+                <div className="portfolio-value">
+                  €{portfolioValue.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className={`portfolio-change ${profitLoss >= 0 ? 'positive' : 'negative'}`}>
+                  {profitLoss >= 0 ? '+' : ''}{profitLoss.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({profitLossPercent}%) Past Year
+                </div>
+              </div>
 
-        {view === 'overview' && (
-          <>
-            {/* Summary Cards */}
-            <div className="metrics-grid">
-              <div className="metric-card">
-                <p className="metric-label">Total Invested</p>
-                <p className="metric-value">€{totalInvested.toLocaleString()}</p>
-              </div>
-              <div className="metric-card">
-                <p className="metric-label">Portfolio Value (Live)</p>
-                <p className="metric-value" style={{ color: profitLoss >= 0 ? '#1D9E75' : '#c92a2a' }}>
-                  €{portfolioValue.toLocaleString()}
-                </p>
-              </div>
-              <div className="metric-card">
-                <p className="metric-label">Profit / Loss</p>
-                <p className="metric-value" style={{ color: profitLoss >= 0 ? '#1D9E75' : '#c92a2a' }}>
-                  €{profitLoss.toLocaleString()} ({profitLossPercent}%)
-                </p>
-              </div>
-              <div className="metric-card">
-                <p className="metric-label">Total Transactions</p>
-                <p className="metric-value">{filteredData.length}</p>
-              </div>
-            </div>
-
-            {/* Loading Indicator */}
-            {loading && (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '1.5rem', 
-                background: 'rgba(55, 138, 221, 0.05)',
-                borderRadius: '12px',
-                marginBottom: '1.5rem',
-                border: '1px solid rgba(55, 138, 221, 0.1)'
-              }}>
-                <p style={{ color: '#378ADD', fontWeight: 600, fontSize: '15px' }}>
+              {/* Loading Indicator */}
+              {loading && (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '1rem', 
+                  background: 'rgba(55, 138, 221, 0.05)',
+                  borderRadius: '12px',
+                  marginBottom: '1.5rem',
+                  border: '1px solid rgba(55, 138, 221, 0.1)',
+                  fontSize: '14px',
+                  color: '#378ADD',
+                  fontWeight: 600
+                }}>
                   📡 Fetching live prices...
-                </p>
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* Form */}
+              {/* Time Period Selector */}
+              <div className="time-periods">
+                {['1k', '1m', '3m', '6m', 'YTD', '1Y', '5Y', 'ALL'].map((period) => (
+                  <button
+                    key={period}
+                    className={`time-btn ${timePeriod === period ? 'active' : ''}`}
+                    onClick={() => setTimePeriod(period)}
+                  >
+                    {period}
+                  </button>
+                ))}
+              </div>
+
+              {/* Chart */}
+              {investments.length > 0 ? (
+                <div className="chart-card">
+                  <div className="chart-container">
+                    <canvas ref={chartRef}></canvas>
+                  </div>
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <p>📊 No investments yet. Add your first investment to get started!</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {view === 'add' && (
             <div className="card">
-              <h2>Add Investment</h2>
+              <h2>Add New Investment</h2>
               <form onSubmit={handleSubmit} className="form-grid">
                 <select
                   value={formData.asset}
@@ -442,103 +520,58 @@ function Dashboard() {
                 </div>
               </form>
             </div>
+          )}
 
-            {/* Charts */}
-            {investments.length > 0 && (
-              <div className="charts-grid">
-                <div className="card">
-                  <h2>Portfolio Growth</h2>
-                  <div className="chart-container">
-                    <canvas ref={chartRef}></canvas>
-                  </div>
-                </div>
-                <div className="card">
-                  <h2>Market Allocation</h2>
-                  <div className="chart-container">
-                    <canvas ref={pieChartRef}></canvas>
-                  </div>
+          {view === 'analysis' && (
+            <>
+              <div className="card">
+                <h2>Filters & Export</h2>
+                <div className="form-grid">
+                  <select value={filter.market} onChange={(e) => setFilter({ ...filter, market: e.target.value })}>
+                    <option value="all">All Markets</option>
+                    <option value="USA">USA Stocks</option>
+                    <option value="Casablanca">Casablanca Bourse</option>
+                    <option value="ETF">ETFs</option>
+                  </select>
+                  <select value={filter.country} onChange={(e) => setFilter({ ...filter, country: e.target.value })}>
+                    <option value="all">All Countries</option>
+                    <option value="United States">United States</option>
+                    <option value="Morocco">Morocco</option>
+                  </select>
+                  <select value={filter.sector} onChange={(e) => setFilter({ ...filter, sector: e.target.value })}>
+                    <option value="all">All Sectors</option>
+                    {[...new Set(ALL_ASSETS.map((a) => a.sector))].map((sector) => (
+                      <option key={sector} value={sector}>
+                        {sector}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={filter.dateFrom}
+                    onChange={(e) => setFilter({ ...filter, dateFrom: e.target.value })}
+                  />
+                  <input
+                    type="date"
+                    value={filter.dateTo}
+                    onChange={(e) => setFilter({ ...filter, dateTo: e.target.value })}
+                  />
+                  <button onClick={exportToCSV} className="btn btn-secondary">
+                    📥 Export CSV
+                  </button>
                 </div>
               </div>
-            )}
-          </>
-        )}
 
-        {view === 'analysis' && (
-          <>
-            {/* Filters */}
-            <div className="card">
-              <h2>Filters & Export</h2>
-              <div className="form-grid">
-                <select value={filter.market} onChange={(e) => setFilter({ ...filter, market: e.target.value })}>
-                  <option value="all">All Markets</option>
-                  <option value="USA">USA Stocks</option>
-                  <option value="Casablanca">Casablanca Bourse</option>
-                  <option value="ETF">ETFs</option>
-                </select>
-                <select value={filter.country} onChange={(e) => setFilter({ ...filter, country: e.target.value })}>
-                  <option value="all">All Countries</option>
-                  <option value="United States">United States</option>
-                  <option value="Morocco">Morocco</option>
-                </select>
-                <select value={filter.sector} onChange={(e) => setFilter({ ...filter, sector: e.target.value })}>
-                  <option value="all">All Sectors</option>
-                  {[...new Set(ALL_ASSETS.map((a) => a.sector))].map((sector) => (
-                    <option key={sector} value={sector}>
-                      {sector}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="date"
-                  value={filter.dateFrom}
-                  onChange={(e) => setFilter({ ...filter, dateFrom: e.target.value })}
-                />
-                <input
-                  type="date"
-                  value={filter.dateTo}
-                  onChange={(e) => setFilter({ ...filter, dateTo: e.target.value })}
-                />
-                <button onClick={exportToCSV} className="btn btn-secondary">
-                  📥 Export CSV
-                </button>
-              </div>
-            </div>
-
-            {/* Analysis Cards */}
-            {filteredData.length > 0 && (
-              <div className="breakdown-grid">
-                <div className="card">
-                  <h3>By Market</h3>
-                  {Object.entries(byMarket).map(([market, amount]) => (
-                    <div key={market} className="breakdown-item">
-                      <div className="breakdown-header">
-                        <span>
-                          {market === 'USA' ? '🇺🇸' : market === 'Casablanca' ? '🇲🇦' : '📈'} {market}
-                        </span>
-                        <span className="amount">€{Math.round(amount * 100) / 100}</span>
-                      </div>
-                      <div className="progress-bar">
-                        <div
-                          className="progress-fill"
-                          style={{
-                            width: `${(amount / totalInvested) * 100}%`,
-                            backgroundColor:
-                              market === 'USA' ? '#378ADD' : market === 'Casablanca' ? '#BA7517' : '#1D9E75',
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="card">
-                  <h3>By Country</h3>
-                  {Object.entries(byCountry)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([country, amount]) => (
-                      <div key={country} className="breakdown-item">
+              {filteredData.length > 0 && (
+                <div className="breakdown-grid">
+                  <div className="card">
+                    <h3>By Market</h3>
+                    {Object.entries(byMarket).map(([market, amount]) => (
+                      <div key={market} className="breakdown-item">
                         <div className="breakdown-header">
-                          <span>{country === 'United States' ? '🇺🇸' : '🇲🇦'} {country}</span>
+                          <span>
+                            {market === 'USA' ? '🇺🇸' : market === 'Casablanca' ? '🇲🇦' : '📈'} {market}
+                          </span>
                           <span className="amount">€{Math.round(amount * 100) / 100}</span>
                         </div>
                         <div className="progress-bar">
@@ -546,109 +579,127 @@ function Dashboard() {
                             className="progress-fill"
                             style={{
                               width: `${(amount / totalInvested) * 100}%`,
-                              backgroundColor: country === 'United States' ? '#378ADD' : '#BA7517',
+                              backgroundColor:
+                                market === 'USA' ? '#378ADD' : market === 'Casablanca' ? '#BA7517' : '#1D9E75',
                             }}
                           ></div>
                         </div>
                       </div>
                     ))}
-                </div>
+                  </div>
 
-                <div className="card">
-                  <h3>Top Sectors</h3>
-                  {sectors.map((sector) => (
-                    <div key={sector} className="breakdown-item">
-                      <div className="breakdown-header">
-                        <span>{sector}</span>
-                        <span className="amount">€{Math.round(bySector[sector] * 100) / 100}</span>
+                  <div className="card">
+                    <h3>By Country</h3>
+                    {Object.entries(byCountry)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([country, amount]) => (
+                        <div key={country} className="breakdown-item">
+                          <div className="breakdown-header">
+                            <span>{country === 'United States' ? '🇺🇸' : '🇲🇦'} {country}</span>
+                            <span className="amount">€{Math.round(amount * 100) / 100}</span>
+                          </div>
+                          <div className="progress-bar">
+                            <div
+                              className="progress-fill"
+                              style={{
+                                width: `${(amount / totalInvested) * 100}%`,
+                                backgroundColor: country === 'United States' ? '#378ADD' : '#BA7517',
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  <div className="card">
+                    <h3>Top Sectors</h3>
+                    {sectors.map((sector) => (
+                      <div key={sector} className="breakdown-item">
+                        <div className="breakdown-header">
+                          <span>{sector}</span>
+                          <span className="amount">€{Math.round(bySector[sector] * 100) / 100}</span>
+                        </div>
+                        <div className="progress-bar">
+                          <div
+                            className="progress-fill"
+                            style={{ width: `${(bySector[sector] / totalInvested) * 100}%` }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="progress-bar">
-                        <div
-                          className="progress-fill"
-                          style={{ width: `${(bySector[sector] / totalInvested) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
 
-        {view === 'transactions' && (
-          <>
-            {/* Transactions Table */}
-            {filteredData.length > 0 && (
-              <div className="card table-card">
-                <h2>All Transactions with Live Prices</h2>
-                <div className="table-wrapper">
-                  <table className="transactions-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Asset</th>
-                        <th>Ticker</th>
-                        <th>Cost (€)</th>
-                        <th>Current Price</th>
-                        <th>Market Value</th>
-                        <th>P&L</th>
-                        <th>Market</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredData
-                        .sort((a, b) => new Date(b.date) - new Date(a.date))
-                        .map((inv) => {
-                          const asset = ALL_ASSETS.find((a) => a.id === inv.asset);
-                          const currentPrice = prices[asset?.ticker];
-                          const marketValue = currentPrice ? inv.amount * currentPrice : inv.amount;
-                          const pnl = currentPrice ? marketValue - inv.amount : 0;
-                          const pnlPercent = currentPrice ? ((pnl / inv.amount) * 100).toFixed(2) : 0;
+          {view === 'transactions' && (
+            <>
+              {filteredData.length > 0 && (
+                <div className="card table-card">
+                  <h2>All Transactions with Live Prices</h2>
+                  <div className="table-wrapper">
+                    <table className="transactions-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Asset</th>
+                          <th>Ticker</th>
+                          <th>Cost (€)</th>
+                          <th>Current Price</th>
+                          <th>Market Value</th>
+                          <th>P&L</th>
+                          <th>Market</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredData
+                          .sort((a, b) => new Date(b.date) - new Date(a.date))
+                          .map((inv) => {
+                            const asset = ALL_ASSETS.find((a) => a.id === inv.asset);
+                            const currentPrice = prices[asset?.ticker];
+                            const marketValue = currentPrice ? inv.amount * currentPrice : inv.amount;
+                            const pnl = currentPrice ? marketValue - inv.amount : 0;
+                            const pnlPercent = currentPrice ? ((pnl / inv.amount) * 100).toFixed(2) : 0;
 
-                          return (
-                            <tr key={inv.id}>
-                              <td>{inv.date}</td>
-                              <td>{asset?.name}</td>
-                              <td className="ticker">{asset?.ticker}</td>
-                              <td className="amount">€{Math.round(inv.amount * 100) / 100}</td>
-                              <td>{currentPrice ? '€' + currentPrice.toFixed(2) : '—'}</td>
-                              <td className="amount">€{Math.round(marketValue * 100) / 100}</td>
-                              <td style={{ color: pnl >= 0 ? '#1D9E75' : '#c92a2a', fontWeight: 600 }}>
-                                {currentPrice ? `€${pnl.toFixed(2)} (${pnlPercent}%)` : '—'}
-                              </td>
-                              <td>{asset?.market}</td>
-                              <td className="actions">
-                                <button className="btn-small btn-edit" onClick={() => editInvestment(inv)} title="Edit this investment">
-                                  ✏️ Edit
-                                </button>
-                                <button className="btn-small btn-delete" onClick={() => deleteInvestment(inv.id)} title="Delete this investment">
-                                  🗑️ Delete
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
+                            return (
+                              <tr key={inv.id}>
+                                <td>{inv.date}</td>
+                                <td>{asset?.name}</td>
+                                <td className="ticker">{asset?.ticker}</td>
+                                <td className="amount">€{Math.round(inv.amount * 100) / 100}</td>
+                                <td>{currentPrice ? '€' + currentPrice.toFixed(2) : '—'}</td>
+                                <td className="amount">€{Math.round(marketValue * 100) / 100}</td>
+                                <td style={{ color: pnl >= 0 ? '#1D9E75' : '#c92a2a', fontWeight: 600 }}>
+                                  {currentPrice ? `€${pnl.toFixed(2)} (${pnlPercent}%)` : '—'}
+                                </td>
+                                <td>{asset?.market}</td>
+                                <td className="actions">
+                                  <button className="btn-small btn-edit" onClick={() => editInvestment(inv)} title="Edit this investment">
+                                    ✏️ Edit
+                                  </button>
+                                  <button className="btn-small btn-delete" onClick={() => deleteInvestment(inv.id)} title="Delete this investment">
+                                    🗑️ Delete
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {investments.length === 0 && (
-              <div className="empty-state">
-                <p>📊 No investments yet. Add your first investment in the Overview tab!</p>
-              </div>
-            )}
-          </>
-        )}
-
-        {investments.length === 0 && view === 'overview' && (
-          <div className="empty-state">
-            <p>🎯 Start building your global portfolio! Add your first investment above.</p>
-          </div>
-        )}
+              {investments.length === 0 && (
+                <div className="empty-state">
+                  <p>📊 No investments yet. Add your first investment!</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
