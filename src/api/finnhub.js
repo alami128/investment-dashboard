@@ -1,4 +1,4 @@
-const API_KEY = 'YOUR_FINNHUB_API_KEY_HERE'; // Replace with your key!
+const API_KEY = 'd7o8a21r01qmqe7idvqgd7o8a21r01qmqe7idvr0'; // Replace with your key!
 const BASE_URL = 'https://finnhub.io/api/v1';
 
 // Cache for prices (to avoid too many API calls)
