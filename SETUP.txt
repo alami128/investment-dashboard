@@ -1,0 +1,157 @@
+🚀 GLOBAL INVESTMENT PORTFOLIO DASHBOARD - SETUP GUIDE
+
+All files are ready to deploy! Follow these steps:
+
+═══════════════════════════════════════════════════════════════
+
+OPTION 1: GitHub → Vercel (RECOMMENDED)
+
+Step 1: Create GitHub Repository
+  1. Go to https://github.com/new
+  2. Name: investment-dashboard
+  3. Make it PUBLIC ✅
+  4. Create repository
+
+Step 2: Upload Files
+  1. Click "uploading an existing file"
+  2. Upload all files from investment-dashboard/ folder:
+     - Entire src/ folder (App.jsx, App.css, main.jsx, index.css, data/assets.js)
+     - package.json
+     - vite.config.js
+     - index.html
+     - README.md
+  3. Make sure folder structure is correct:
+     ✅ src/App.jsx
+     ✅ src/data/assets.js
+     ✅ package.json (in root)
+     ✅ index.html (in root)
+  4. Click "Commit changes"
+
+Step 3: Connect to Vercel
+  1. Go to https://vercel.com
+  2. Sign up with GitHub
+  3. Click "Add New" → "Project"
+  4. Click "Import Git Repository"
+  5. Select investment-dashboard
+  6. Click "Deploy"
+  7. Wait 1-2 minutes
+
+Step 4: Get Your Live URL
+  After deployment, you'll see:
+  https://investment-dashboard-{random}.vercel.app ✅
+
+═══════════════════════════════════════════════════════════════
+
+OPTION 2: GitHub Pages
+
+Step 1: Create GitHub Repo (same as above)
+
+Step 2: Upload Files (same as above)
+
+Step 3: Enable GitHub Pages
+  1. Go to your repo Settings
+  2. Scroll to "Pages"
+  3. Source: "Deploy from a branch"
+  4. Branch: main
+  5. Save
+
+Step 4: Your Live URL
+  https://YOUR_USERNAME.github.io/investment-dashboard/
+
+═══════════════════════════════════════════════════════════════
+
+FOLDER STRUCTURE (IMPORTANT!)
+
+Make sure files are organized like this:
+
+investment-dashboard/
+│
+├── src/
+│   ├── data/
+│   │   └── assets.js          ← Asset databases
+│   ├── App.jsx                ← Main component
+│   ├── App.css                ← Styles
+│   ├── main.jsx               ← Entry point
+│   └── index.css              ← Global styles
+│
+├── index.html                 ← HTML template
+├── package.json               ← Dependencies
+├── vite.config.js             ← Build config
+├── README.md                  ← Full documentation
+└── .gitignore
+
+═══════════════════════════════════════════════════════════════
+
+FEATURES INCLUDED
+
+📊 Portfolio Tracking
+  ✅ 30+ USA stocks
+  ✅ 20+ Casablanca stocks
+  ✅ 16+ ETFs
+
+📈 Analytics
+  ✅ Growth charts
+  ✅ Market allocation
+  ✅ Sector breakdown
+  ✅ Country comparison
+
+🎯 Dashboard
+  ✅ Overview tab
+  ✅ Analysis tab
+  ✅ Transactions tab
+
+🔧 Tools
+  ✅ Add/edit/delete investments
+  ✅ Filter by market, country, sector, date
+  ✅ Export to CSV
+  ✅ Auto-save to browser
+  ✅ Mobile responsive
+
+═══════════════════════════════════════════════════════════════
+
+QUICK START (LOCAL TESTING)
+
+1. Open Terminal
+2. Navigate to folder:
+   cd investment-dashboard
+
+3. Install dependencies:
+   npm install
+
+4. Start development server:
+   npm run dev
+
+5. Open browser:
+   http://localhost:5173
+
+═══════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING
+
+Problem: Files won't upload
+Solution: Make sure src/ folder is created on GitHub with correct files inside
+
+Problem: Build error
+Solution: Delete node_modules and package-lock.json, then npm install again
+
+Problem: GitHub Pages shows 404
+Solution: Make sure vite.config.js has: base: '/investment-dashboard/'
+
+Problem: Can't find deployment
+Solution: Check Vercel/GitHub Pages dashboard for build logs
+
+═══════════════════════════════════════════════════════════════
+
+NEXT STEPS
+
+1. ✅ Download all files
+2. ✅ Create GitHub repo
+3. ✅ Upload with correct folder structure
+4. ✅ Deploy to Vercel or GitHub Pages
+5. ✅ Share your live URL!
+
+═══════════════════════════════════════════════════════════════
+
+Your professional global investment dashboard is ready! 🚀
+
+Need help? Check README.md for detailed documentation.
