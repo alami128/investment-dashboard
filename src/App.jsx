@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 import { USA_STOCKS, CASABLANCA_STOCKS, ETFS, ALL_ASSETS } from './data/assets';
+import { getStockPrice, getMultiplePrices } from './api/finnhub';
 import './App.css';
 
 function Dashboard() {
   const [investments, setInvestments] = useState([]);
+  const [prices, setPrices] = useState({});
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     asset: '',
     amount: '',
@@ -40,6 +43,32 @@ function Dashboard() {
   // Save to localStorage
   useEffect(() => {
     localStorage.setItem('investments', JSON.stringify(investments));
+  }, [investments]);
+
+  // Fetch live prices
+  useEffect(() => {
+    const fetchPrices = async () => {
+      setLoading(true);
+      const uniqueTickers = [
+        ...new Set(investments.map((inv) => {
+          const asset = ALL_ASSETS.find((a) => a.id === inv.asset);
+          return asset?.ticker;
+        })),
+      ].filter(Boolean);
+
+      if (uniqueTickers.length > 0) {
+        const fetchedPrices = await getMultiplePrices(uniqueTickers);
+        setPrices(fetchedPrices);
+      }
+      setLoading(false);
+    };
+
+    if (investments.length > 0) {
+      fetchPrices();
+      // Refresh prices every 30 seconds
+      const interval = setInterval(fetchPrices, 30000);
+      return () => clearInterval(interval);
+    }
   }, [investments]);
 
   // Portfolio value chart
@@ -159,11 +188,6 @@ function Dashboard() {
               position: 'bottom',
               labels: { padding: 20, font: { size: 14 } },
             },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => ctx.label + ': €' + ctx.parsed.y.toLocaleString(),
-              },
-            },
           },
         },
       });
@@ -233,10 +257,12 @@ function Dashboard() {
   };
 
   const exportToCSV = () => {
-    const headers = ['Date', 'Asset', 'Ticker', 'Amount', 'Market', 'Country', 'Sector'];
+    const headers = ['Date', 'Asset', 'Ticker', 'Amount', 'Current Price', 'Market Value', 'Market', 'Country'];
     const rows = investments.map((inv) => {
       const asset = ALL_ASSETS.find((a) => a.id === inv.asset);
-      return [inv.date, asset.name, asset.ticker, inv.amount, asset.market, asset.country, asset.sector];
+      const currentPrice = prices[asset.ticker] || 'N/A';
+      const marketValue = prices[asset.ticker] ? (inv.amount * prices[asset.ticker]).toFixed(2) : 'N/A';
+      return [inv.date, asset.name, asset.ticker, inv.amount, currentPrice, marketValue, asset.market, asset.country];
     });
     const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -249,6 +275,22 @@ function Dashboard() {
 
   const filteredData = applyFilters(investments);
   const totalInvested = Math.round(filteredData.reduce((sum, inv) => sum + inv.amount, 0) * 100) / 100;
+  
+  // Calculate portfolio value with live prices
+  let portfolioValue = 0;
+  filteredData.forEach((inv) => {
+    const asset = ALL_ASSETS.find((a) => a.id === inv.asset);
+    if (asset && prices[asset.ticker]) {
+      portfolioValue += inv.amount * prices[asset.ticker];
+    } else {
+      portfolioValue += inv.amount; // Fallback to cost if price not available
+    }
+  });
+  portfolioValue = Math.round(portfolioValue * 100) / 100;
+
+  const profitLoss = portfolioValue - totalInvested;
+  const profitLossPercent = totalInvested > 0 ? ((profitLoss / totalInvested) * 100).toFixed(2) : 0;
+
   const byMarket = {};
   const byCountry = {};
   const bySector = {};
@@ -272,7 +314,7 @@ function Dashboard() {
         {/* Header */}
         <div className="header">
           <h1>💼 Global Investment Portfolio</h1>
-          <p>Track USA stocks, Casablanca Bourse, and ETFs in one place</p>
+          <p>Track USA stocks, Casablanca Bourse, and ETFs with live prices</p>
         </div>
 
         {/* View Tabs */}
@@ -297,22 +339,25 @@ function Dashboard() {
                 <p className="metric-value">€{totalInvested.toLocaleString()}</p>
               </div>
               <div className="metric-card">
+                <p className="metric-label">Portfolio Value (Live)</p>
+                <p className="metric-value" style={{ color: profitLoss >= 0 ? '#1D9E75' : '#c92a2a' }}>
+                  €{portfolioValue.toLocaleString()}
+                </p>
+              </div>
+              <div className="metric-card">
+                <p className="metric-label">Profit / Loss</p>
+                <p className="metric-value" style={{ color: profitLoss >= 0 ? '#1D9E75' : '#c92a2a' }}>
+                  €{profitLoss.toLocaleString()} ({profitLossPercent}%)
+                </p>
+              </div>
+              <div className="metric-card">
                 <p className="metric-label">Total Transactions</p>
                 <p className="metric-value">{filteredData.length}</p>
               </div>
-              <div className="metric-card">
-                <p className="metric-label">Average Investment</p>
-                <p className="metric-value">
-                  €{filteredData.length > 0 ? Math.round((totalInvested / filteredData.length) * 100) / 100 : 0}
-                </p>
-              </div>
-              <div className="metric-card">
-                <p className="metric-label">Number of Assets</p>
-                <p className="metric-value">
-                  {[...new Set(filteredData.map((inv) => inv.asset))].length}
-                </p>
-              </div>
             </div>
+
+            {/* Loading Indicator */}
+            {loading && <p style={{ textAlign: 'center', color: '#378ADD', marginBottom: '1rem' }}>📡 Fetching live prices...</p>}
 
             {/* Form */}
             <div className="card">
@@ -434,13 +479,11 @@ function Dashboard() {
                   type="date"
                   value={filter.dateFrom}
                   onChange={(e) => setFilter({ ...filter, dateFrom: e.target.value })}
-                  placeholder="From"
                 />
                 <input
                   type="date"
                   value={filter.dateTo}
                   onChange={(e) => setFilter({ ...filter, dateTo: e.target.value })}
-                  placeholder="To"
                 />
                 <button onClick={exportToCSV} className="btn btn-secondary">
                   Export CSV
@@ -525,7 +568,7 @@ function Dashboard() {
             {/* Transactions Table */}
             {filteredData.length > 0 && (
               <div className="card table-card">
-                <h2>All Transactions</h2>
+                <h2>All Transactions with Live Prices</h2>
                 <div className="table-wrapper">
                   <table className="transactions-table">
                     <thead>
@@ -533,10 +576,11 @@ function Dashboard() {
                         <th>Date</th>
                         <th>Asset</th>
                         <th>Ticker</th>
-                        <th>Amount</th>
+                        <th>Cost (€)</th>
+                        <th>Current Price</th>
+                        <th>Market Value</th>
+                        <th>P&L</th>
                         <th>Market</th>
-                        <th>Sector</th>
-                        <th>Country</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -545,15 +589,23 @@ function Dashboard() {
                         .sort((a, b) => new Date(b.date) - new Date(a.date))
                         .map((inv) => {
                           const asset = ALL_ASSETS.find((a) => a.id === inv.asset);
+                          const currentPrice = prices[asset?.ticker];
+                          const marketValue = currentPrice ? inv.amount * currentPrice : inv.amount;
+                          const pnl = currentPrice ? marketValue - inv.amount : 0;
+                          const pnlPercent = currentPrice ? ((pnl / inv.amount) * 100).toFixed(2) : 0;
+
                           return (
                             <tr key={inv.id}>
                               <td>{inv.date}</td>
                               <td>{asset?.name}</td>
                               <td className="ticker">{asset?.ticker}</td>
                               <td className="amount">€{Math.round(inv.amount * 100) / 100}</td>
+                              <td>{currentPrice ? '€' + currentPrice.toFixed(2) : '—'}</td>
+                              <td className="amount">€{Math.round(marketValue * 100) / 100}</td>
+                              <td style={{ color: pnl >= 0 ? '#1D9E75' : '#c92a2a', fontWeight: 600 }}>
+                                {currentPrice ? `€${pnl.toFixed(2)} (${pnlPercent}%)` : '—'}
+                              </td>
                               <td>{asset?.market}</td>
-                              <td>{asset?.sector}</td>
-                              <td>{asset?.country}</td>
                               <td className="actions">
                                 <button className="btn-small btn-edit" onClick={() => editInvestment(inv)}>
                                   Edit
