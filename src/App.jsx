@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 import { USA_STOCKS, CASABLANCA_STOCKS, ETFS, ALL_ASSETS } from './data/assets';
-import { getStockPrice, getMultiplePrices } from './api/finnhub';
+import { getMultiplePrices } from './api/finnhub';
 import './App.css';
 
 function Dashboard() {
@@ -24,7 +24,6 @@ function Dashboard() {
   });
   const [view, setView] = useState('investments');
   const [timePeriod, setTimePeriod] = useState('ALL');
-  const [showAddForm, setShowAddForm] = useState(false);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const pieChartRef = useRef(null);
@@ -355,6 +354,7 @@ function Dashboard() {
             title="Investments"
           >
             📈
+            <span className="sr-only">Investments</span>
           </button>
           <button 
             className={`nav-icon ${view === 'analysis' ? 'active' : ''}`}
@@ -362,6 +362,7 @@ function Dashboard() {
             title="Analysis"
           >
             📊
+            <span className="sr-only">Analysis</span>
           </button>
           <button 
             className={`nav-icon ${view === 'add' ? 'active' : ''}`}
@@ -369,6 +370,7 @@ function Dashboard() {
             title="Add Investment"
           >
             ➕
+            <span className="sr-only">Add investment</span>
           </button>
           <button 
             className={`nav-icon ${view === 'transactions' ? 'active' : ''}`}
@@ -376,6 +378,7 @@ function Dashboard() {
             title="Transactions"
           >
             📋
+            <span className="sr-only">Transactions</span>
           </button>
         </div>
       </div>
@@ -405,19 +408,24 @@ function Dashboard() {
                 </div>
               </div>
 
+              <div className="metrics-grid">
+                <div className="metric-card">
+                  <div className="metric-label">Total Invested</div>
+                  <div className="metric-value">€{totalInvested.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-label">Portfolio Value</div>
+                  <div className="metric-value">€{portfolioValue.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-label">Total Positions</div>
+                  <div className="metric-value">{filteredData.length}</div>
+                </div>
+              </div>
+
               {/* Loading Indicator */}
               {loading && (
-                <div style={{ 
-                  textAlign: 'center', 
-                  padding: '1rem', 
-                  background: 'rgba(55, 138, 221, 0.05)',
-                  borderRadius: '12px',
-                  marginBottom: '1.5rem',
-                  border: '1px solid rgba(55, 138, 221, 0.1)',
-                  fontSize: '14px',
-                  color: '#378ADD',
-                  fontWeight: 600
-                }}>
+                <div className="loading-banner">
                   📡 Fetching live prices...
                 </div>
               )}
